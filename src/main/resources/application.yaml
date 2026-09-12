@@ -25,3 +25,17 @@ mybatis-plus:
 logging:
   level:
     com.hmdp: debug
+rocketmq:
+  producer:
+    group: hm-seckill-producer-group
+  name-server: 192.168.253.130:9876
+
+# Chat Completions-compatible endpoint; provide secrets via environment variables.
+customer-service:
+  ai:
+    enabled: ${CUSTOMER_SERVICE_AI_ENABLED:false}
+    endpoint: ${CUSTOMER_SERVICE_AI_ENDPOINT:}
+    model: ${CUSTOMER_SERVICE_AI_MODEL:}
+    api-key: ${CUSTOMER_SERVICE_AI_API_KEY:}
+    connect-timeout-ms: 5000
+    read-timeout-ms: 30000
