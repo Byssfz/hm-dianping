@@ -14,7 +14,7 @@ Vue.component("footBar", {
     </div>
     <div class="foot-box" :class="{active: activeBtn === 3}" @click="toPage(3)">
       <div class="foot-view"><i class="el-icon-chat-dot-round"></i></div>
-      <div class="foot-text">消息</div>
+      <div class="foot-text">客服</div>
     </div>
     <div class="foot-box" :class="{active: activeBtn === 4}" @click="toPage(4)">
       <div class="foot-view"><i class="el-icon-user"></i></div>
@@ -33,6 +33,8 @@ Vue.component("footBar", {
         location.href = "/blog-edit.html"
       } else if (i === 4) {
         location.href = "/info.html"
+      } else if (i === 3) {
+        location.href = "/customer-service.html"
       } else if (i === 1){
         location.href = "/"
       }

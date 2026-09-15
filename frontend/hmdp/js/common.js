@@ -24,10 +24,11 @@ axios.interceptors.response.use(function (response) {
 }, function (error) {
   // 一般是服务端异常或者网络异常
   console.log(error)
-  if(error.response.status == 401){
+  if(error.response && error.response.status == 401){
     // 未登录，跳转
     setTimeout(() => {
-      location.href = "/login.html"
+      const returnPath = location.pathname + location.search;
+      location.href = "/login.html?redirect=" + encodeURIComponent(returnPath)
     }, 200);
     return Promise.reject("请先登录");
   }

@@ -83,8 +83,9 @@
               // 保存用户信息到session
               sessionStorage.setItem("token", data);
             }
-            // 跳转到首页
-            location.href = "/index.html"
+            // 返回登录前页面，缺少安全的站内地址时进入首页
+            const redirect = new URLSearchParams(location.search).get("redirect");
+            location.href = redirect && redirect.startsWith("/") && !redirect.startsWith("//") ? redirect : "/index.html"
         })
         .catch(err => this.$message.error(err))
       },
