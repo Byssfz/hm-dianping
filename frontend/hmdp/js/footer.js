@@ -34,7 +34,11 @@ Vue.component("footBar", {
       } else if (i === 4) {
         location.href = "/info.html"
       } else if (i === 3) {
-        location.href = "/customer-service.html"
+        if (document.getElementById("customer-service-widget")) {
+          window.dispatchEvent(new Event("hmdp:open-customer-service"))
+        } else {
+          location.href = "/customer-service.html"
+        }
       } else if (i === 1){
         location.href = "/"
       }

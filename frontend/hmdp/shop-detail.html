@@ -9,6 +9,7 @@
 
   <link href="./css/shop-detail.css" rel="stylesheet">
   <link href="./css/main.css" rel="stylesheet">
+  <link href="./css/customer-service-widget.css" rel="stylesheet">
 
   <style type="text/css">
 
@@ -86,10 +87,6 @@
     </div>
   </div>
   <div class="shop-divider"></div>
-  <button class="customer-service-entry" type="button" @click="askCustomerService">
-    <i class="el-icon-chat-dot-round"></i>
-    <span>问客服</span>
-  </button>
   <div class="shop-comments">
     <div class="comments-head">
       <div>网友评价 <span>（119）</span></div>
@@ -142,6 +139,7 @@
     copyright ©2021 hmdp.com
   </div>
 </div>
+<div id="customer-service-widget" v-cloak></div>
 <script src="./js/vue.js"></script>
 <script src="./js/axios.min.js"></script>
 <!-- 引入组件库 -->
@@ -167,10 +165,6 @@
     methods: {
       goBack() {
         history.back();
-      },
-      askCustomerService() {
-        const name = this.shop.name ? "&shopName=" + encodeURIComponent(this.shop.name) : "";
-        location.href = "/customer-service.html?shopId=" + shopId + name;
       },
       queryShopById(shopId) {
         axios.get("/shop/" + shopId)
@@ -238,5 +232,6 @@
     }
   })
 </script>
+<script src="./js/customer-service-widget.js"></script>
 </body>
 </html>

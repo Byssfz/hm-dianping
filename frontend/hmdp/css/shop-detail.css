@@ -318,21 +318,3 @@
     border-radius: 5px;
     margin-right: 5px;
 }
-.customer-service-entry {
-    position: fixed;
-    right: 16px;
-    bottom: 22px;
-    z-index: 20;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    padding: 10px 13px;
-    border: 0;
-    border-radius: 999px;
-    color: #fff;
-    font-size: 12px;
-    background: linear-gradient(135deg, #ff7547, #ff5428);
-    box-shadow: 0 7px 18px rgba(255, 92, 43, .28);
-}
-
-.customer-service-entry i { font-size: 17px; }
