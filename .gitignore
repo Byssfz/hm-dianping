@@ -10,3 +10,10 @@
 !/src/test/java/com/hmdp/
 !/src/test/java/com/hmdp/customer/
 !/src/test/java/com/hmdp/customer/*Test.java
+# Local Nginx runtime. Frontend source is tracked under frontend/hmdp.
+/nginx-1.18.0-hmdp/
+
+# Local browser profiles and generated UI previews.
+/.codex-chrome-demo/
+/docs/customer-service-ui-demo*.png
+/docs/customer-service-ui-demo*.jpg
