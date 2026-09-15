@@ -13,19 +13,22 @@
 
 ## 配置和启动
 
-配置位于 `src/main/resources/application.yaml` 的 `customer-service.ai`。默认关闭；启用但缺少配置时，客服返回明确提示，不影响其他业务启动。
+配置位于 `src/main/resources/application.yaml` 的 `customer-service.ai`，当前直接从 YAML 读取：
 
-在启动应用的 PowerShell 窗口设置以下环境变量，或在 IDEA Run Configuration 的 Environment variables 中设置同名变量：
-
-```powershell
-$env:CUSTOMER_SERVICE_AI_ENABLED = 'true'
-$env:CUSTOMER_SERVICE_AI_ENDPOINT = 'https://你的服务地址/v1/chat/completions'
-$env:CUSTOMER_SERVICE_AI_MODEL = '你的工具调用模型名称'
-$env:CUSTOMER_SERVICE_AI_API_KEY = '你的密钥'
-mvn spring-boot:run
+```yaml
+customer-service:
+  ai:
+    enabled: true
+    endpoint: https://api.deepseek.com/chat/completions
+    model: deepseek-v4-pro
+    api-key: "在这里填写真实 API Key"
+    connect-timeout-ms: 5000
+    read-timeout-ms: 30000
 ```
 
-`ENDPOINT` 是完整的 Chat Completions 接口 URL，客户端不会自动拼接路径。上例是占位符，必须替换。密钥只放在运行环境中，不写入仓库。服务端发出 `Authorization: Bearer <API Key>`。
+`endpoint` 必须是完整的 Chat Completions 接口 URL，客户端不会自动拼接路径。`model` 必须是当前模型账户实际可用且支持 Tool Calls 的模型名。代码会以 `Authorization: Bearer <API Key>` 请求模型服务。
+
+仓库中的 `api-key` 默认留空；填写后重启应用才会生效。包含真实密钥的 YAML 不应提交或分享。若该仓库需要多人协作或部署到生产环境，应恢复为环境变量或外部配置中心，避免密钥进入 Git 历史。
 
 服务需支持非流式 `messages`、`tools`、`tool_choice: auto`、`max_tokens` 请求字段，以及 `choices[0].message`、`finish_reason` 响应字段。工具使用 `tool_calls[].function.name/arguments`（arguments 为 JSON 字符串），工具回复携带 `tool_call_id`。本轮工具循环保留服务返回的 `reasoning_content`，不把推理过程返回客户端或存入会话。
 

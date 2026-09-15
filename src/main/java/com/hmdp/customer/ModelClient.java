@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
@@ -12,6 +13,7 @@ import org.springframework.web.client.*;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 
+@Slf4j
 @Component
 public class ModelClient {
     private final AiProperties properties;
@@ -68,11 +70,15 @@ public class ModelClient {
             }
             return result;
         } catch (HttpStatusCodeException e) {
+            log.warn("customer_service model http error status={} category={}",
+                    e.getRawStatusCode(), e.getClass().getSimpleName());
             if (e.getRawStatusCode() == 429) throw new CustomerServiceException("模型服务繁忙，请稍后重试");
             throw new CustomerServiceException("模型服务调用失败，请联系管理员或稍后重试");
         } catch (ResourceAccessException e) {
+            log.warn("customer_service model connection error category={}", e.getClass().getSimpleName());
             throw new CustomerServiceException("模型连接失败或超时，请稍后重试");
         } catch (RestClientException e) {
+            log.warn("customer_service model response error category={}", e.getClass().getSimpleName());
             throw new CustomerServiceException("模型返回格式异常，请稍后重试");
         }
     }
