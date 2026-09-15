@@ -1,0 +1,141 @@
+# MySQL + Redis + RocketMQ; Java runs on the Docker host.
+# Keep the project name to preserve the existing broker-store volume.
+# docker compose -f docs/docker-compose-rocketmq.yml up -d
+name: hmdp-rocketmq
+
+services:
+  mysql:
+    image: mysql:8.0.32
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:13306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: "123456"
+      MYSQL_ROOT_HOST: "%"
+      MYSQL_DATABASE: hmdp
+      TZ: Asia/Shanghai
+    command:
+      - --default-authentication-plugin=mysql_native_password
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_general_ci
+      - --innodb-buffer-pool-size=128M
+      - --max-connections=50
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - type: bind
+        source: ./mysql/01-init.sh
+        target: /docker-entrypoint-initdb.d/01-init.sh
+        read_only: true
+        bind:
+          create_host_path: false
+      # Imported only on first startup with an empty data volume.
+      - type: bind
+        source: ../src/main/resources/db/hmdp.sql
+        target: /opt/hmdp.sql
+        read_only: true
+        bind:
+          create_host_path: false
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=\"$$MYSQL_ROOT_PASSWORD\" mysql --protocol=TCP -h 127.0.0.1 -uroot -D hmdp -e 'SELECT 1 FROM tb_voucher_order LIMIT 1' > /dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+
+  redis:
+    image: redis:6.2
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:16379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+
+  namesrv:
+    image: apache/rocketmq:4.9.7
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:9876:9876"
+    environment:
+      JAVA_OPT_EXT: "-Xms64m -Xmx128m -Xmn32m -XX:MetaspaceSize=32m -XX:MaxDirectMemorySize=32m"
+    command: ["sh", "mqnamesrv"]
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo > /dev/tcp/127.0.0.1/9876"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  broker-store-init:
+    image: apache/rocketmq:4.9.7
+    user: "0:0"
+    restart: "no"
+    volumes:
+      - broker-store:/home/rocketmq/store
+    command: ["sh", "-c", "chown 3000:3000 /home/rocketmq/store"]
+
+  broker:
+    image: apache/rocketmq:4.9.7
+    restart: unless-stopped
+    depends_on:
+      broker-store-init:
+        condition: service_completed_successfully
+      namesrv:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:10909:10909"
+      - "127.0.0.1:10911:10911"
+    environment:
+      NAMESRV_ADDR: "namesrv:9876"
+      JAVA_OPT_EXT: "-Xms128m -Xmx256m -Xmn64m -XX:MaxDirectMemorySize=64m -XX:G1HeapRegionSize=1m -XX:-AlwaysPreTouch -XX:-UseContainerSupport"
+    volumes:
+      - type: bind
+        source: ./rocketmq/broker.conf
+        target: /home/rocketmq/broker.conf
+        read_only: true
+        bind:
+          create_host_path: false
+      - broker-store:/home/rocketmq/store
+    command: ["sh", "mqbroker", "-c", "/home/rocketmq/broker.conf"]
+    healthcheck:
+      # tools.sh defaults to a 1GB heap; invoke the admin class with a small heap.
+      test: ["CMD-SHELL", "java -Xms16m -Xmx64m -XX:MaxDirectMemorySize=32m -cp \"$$ROCKETMQ_HOME/conf:$$ROCKETMQ_HOME/lib/*\" org.apache.rocketmq.tools.command.MQAdminStartup brokerStatus -n namesrv:9876 -b 127.0.0.1:10911 > /dev/null 2>&1"]
+      interval: 30s
+      timeout: 10s
+      retries: 12
+      start_period: 30s
+
+  # Runs once in the broker network namespace; preserves existing queue counts.
+  init-topic:
+    image: apache/rocketmq:4.9.7
+    restart: "no"
+    network_mode: "service:broker"
+    depends_on:
+      broker:
+        condition: service_healthy
+    command:
+      - sh
+      - -c
+      - 'exec java -Xms16m -Xmx64m -XX:MaxDirectMemorySize=32m -cp "$$ROCKETMQ_HOME/conf:$$ROCKETMQ_HOME/lib/*" org.apache.rocketmq.tools.command.MQAdminStartup "$$@"'
+      - mqadmin-small
+      - updateTopic
+      - -n
+      - namesrv:9876
+      - -b
+      - 127.0.0.1:10911
+      - -t
+      - hmseckillTopic
+      - -r
+      - "4"
+      - -w
+      - "4"
+
+volumes:
+  broker-store:
+  mysql-data:
+  redis-data:
