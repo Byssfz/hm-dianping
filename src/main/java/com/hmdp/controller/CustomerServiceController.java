@@ -1,8 +1,8 @@
 package com.hmdp.controller;
 
+import com.hmdp.ai.AiException;
 import com.hmdp.customer.ChatRequest;
 import com.hmdp.customer.CustomerService;
-import com.hmdp.customer.CustomerServiceException;
 import com.hmdp.dto.Result;
 import com.hmdp.dto.UserDTO;
 import com.hmdp.utils.UserHolder;
@@ -24,8 +24,8 @@ public class CustomerServiceController {
         return Result.ok(service.chat(request, user == null ? null : user.getId()));
     }
 
-    @ExceptionHandler(CustomerServiceException.class)
-    public Result handleCustomerError(CustomerServiceException error) { return Result.fail(error.getMessage()); }
+    @ExceptionHandler(AiException.class)
+    public Result handleCustomerError(AiException error) { return Result.fail(error.getMessage()); }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public Result handleInvalidJson() { return Result.fail("请求JSON格式无效"); }

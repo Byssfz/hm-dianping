@@ -29,7 +29,8 @@ rocketmq:
     group: hm-seckill-producer-group
   name-server: 127.0.0.1:9876
 
-# 智能客服模型配置（支持 Chat Completions + Tool Calls 的模型服务）
+# AI 模型服务配置（智能客服 + AI 探店文案助手共用，前缀为兼容既有部署保留）
+# 模型需支持 Chat Completions；智能客服额外要求 Tool Calls 能力。
 customer-service:
   ai:
     enabled: ${CUSTOMER_SERVICE_AI_ENABLED:true}

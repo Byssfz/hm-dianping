@@ -41,6 +41,33 @@
   <div class="blog-content">
     <textarea v-model="params.content" placeholder="最近打卡了什么地方，有什么新奇体验呢？"></textarea>
   </div>
+  <div class="ai-draft">
+    <div class="ai-draft-head" @click="aiOpen = !aiOpen">
+      <span class="ai-draft-badge">AI</span>
+      <div class="ai-draft-heading">
+        <strong>探店文案助手</strong>
+        <span>选好商户，写几个关键词，标题和正文就有着落了</span>
+      </div>
+      <span class="ai-draft-toggle">{{ aiOpen ? '收起' : '帮我写' }}<i :class="aiOpen ? 'el-icon-arrow-up' : 'el-icon-arrow-down'"></i></span>
+    </div>
+    <div v-show="aiOpen" class="ai-draft-body">
+      <div class="ai-draft-styles">
+        <button type="button" v-for="s in aiStyles" :key="s.value"
+                :class="{ active: aiStyle === s.value }" :disabled="aiLoading"
+                @click="aiStyle = s.value">{{ s.label }}</button>
+      </div>
+      <textarea v-model="aiKeywords" class="ai-draft-keywords" rows="2" maxlength="120" :disabled="aiLoading"
+                placeholder="写几个关键词，如：蟹黄面、环境安静、适合约会（120 字以内）"></textarea>
+      <div class="ai-draft-footer">
+        <span class="ai-draft-shop"><i class="el-icon-map-location"></i>{{ selectedShop.name || '未关联商户（可选）' }}</span>
+        <button type="button" class="ai-draft-submit" :disabled="aiLoading || !aiKeywords.trim()" @click="generateDraft">
+          <i class="el-icon-magic-stick"></i>{{ aiLoading ? '生成中…' : (aiHasDraft ? '再写一版' : '生成文案') }}
+        </button>
+      </div>
+      <div v-if="aiError" class="ai-draft-error"><i class="el-icon-warning-outline"></i>{{ aiError }}</div>
+      <div v-else-if="aiHasDraft" class="ai-draft-hint">已填入标题和正文，记得按真实体验再改一改。</div>
+    </div>
+  </div>
   <div class="divider"></div>
   <div class="blog-shop" @click="showDialog=true">
     <div class="shop-left">关联商户</div>
@@ -84,11 +111,23 @@
       return {
         util,
         fileList: [], // 文件列表
-        params: {},
+        // 预置空字段，保证 AI 填写的标题和正文能触发 Vue 响应式更新
+        params: {title: "", content: ""},
         showDialog: false, //
         shops: [], // 商户信息
         shopName: "", //商户名称
         selectedShop: {}, // 选中的商户
+        aiOpen: false, // AI 文案面板是否展开
+        aiKeywords: "", // AI 关键词
+        aiStyle: "xiaohongshu", // 写作风格
+        aiStyles: [
+          {value: "xiaohongshu", label: "小红书"},
+          {value: "casual", label: "朋友分享"},
+          {value: "concise", label: "简洁信息"}
+        ],
+        aiLoading: false,
+        aiError: "",
+        aiHasDraft: false,
       }
     },
     created() {
@@ -115,6 +154,46 @@
       },
       openFileDialog() {
         this.$refs.fileInput.click();
+      },
+      generateDraft() {
+        const keywords = this.aiKeywords.trim();
+        if (!keywords || this.aiLoading) return;
+        const run = () => {
+          this.aiLoading = true;
+          this.aiError = "";
+          axios.post("/ai/blog/draft", {
+            shopId: this.selectedShop.id ? String(this.selectedShop.id) : "",
+            keywords: keywords,
+            style: this.aiStyle
+          }, {timeout: 60000})
+            .then(({data}) => {
+              if (!data || typeof data.title !== "string" || typeof data.content !== "string") {
+                throw "文案返回格式异常，请稍后重试";
+              }
+              this.params.title = data.title;
+              const tags = Array.isArray(data.tags)
+                ? data.tags.filter(t => typeof t === "string" && t.trim())
+                : [];
+              this.params.content = data.content + (tags.length ? "\n\n" + tags.map(t => "#" + t).join(" ") : "");
+              this.aiHasDraft = true;
+              this.$message.success("文案已生成，可继续修改");
+            })
+            .catch(error => {
+              this.aiError = typeof error === "string" ? error : "文案生成失败，请稍后重试";
+            })
+            .finally(() => {
+              this.aiLoading = false;
+            });
+        };
+        if (String(this.params.content || "").trim()) {
+          this.$confirm("生成后会覆盖当前正文，是否继续？", "AI 文案助手", {
+            confirmButtonText: "继续生成",
+            cancelButtonText: "取消",
+            type: "warning"
+          }).then(run).catch(() => {});
+        } else {
+          run();
+        }
       },
       fileSelected() {
         let file = this.$refs.fileInput.files[0];

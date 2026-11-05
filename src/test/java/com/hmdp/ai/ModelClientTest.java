@@ -1,4 +1,4 @@
-package com.hmdp.customer;
+package com.hmdp.ai;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,17 +19,8 @@ class ModelClientTest {
     ModelClient client;
     MockRestServiceServer server;
 
-    static AiProperties configured() {
-        AiProperties properties = new AiProperties();
-        properties.setEnabled(true);
-        properties.setEndpoint("https://model.example/chat/completions");
-        properties.setModel("test-model");
-        properties.setApiKey("test-secret");
-        return properties;
-    }
-
     @BeforeEach void setup() {
-        properties = configured();
+        properties = AiTestFixtures.configured();
         client = new ModelClient(properties, mapper);
         server = MockRestServiceServer.bindTo(client.http()).build();
     }
@@ -45,29 +36,46 @@ class ModelClientTest {
         server.verify();
     }
 
+    @Test void plainCompletionOmitsTools() {
+        server.expect(requestTo(properties.getEndpoint()))
+                .andExpect(jsonPath("$.tools").doesNotExist())
+                .andExpect(jsonPath("$.tool_choice").doesNotExist())
+                .andRespond(withSuccess("{\"choices\":[{\"finish_reason\":\"stop\",\"message\":{\"role\":\"assistant\","
+                        + "\"content\":\"hello\"}}]}", MediaType.APPLICATION_JSON));
+        assertEquals("hello", client.complete(mapper.createArrayNode()).path("content").asText());
+        server.verify();
+    }
+
+    @Test void plainCompletionRejectsUnexpectedToolCalls() {
+        server.expect(anything()).andRespond(withSuccess("{\"choices\":[{\"finish_reason\":\"tool_calls\","
+                + "\"message\":{\"role\":\"assistant\",\"tool_calls\":[]}}]}", MediaType.APPLICATION_JSON));
+        assertThrows(AiException.class, () -> client.complete(mapper.createArrayNode()));
+        server.verify();
+    }
+
     @Test void missingConfigurationFailsBeforeHttp() {
         properties.setApiKey("");
-        assertThrows(CustomerServiceException.class, () -> client.complete(mapper.createArrayNode(), mapper.createArrayNode()));
+        assertThrows(AiException.class, () -> client.complete(mapper.createArrayNode(), mapper.createArrayNode()));
         server.verify();
     }
 
     @Test void disabledConfigurationDoesNotNeedCredentials() {
         AiProperties disabled = new AiProperties();
         assertDoesNotThrow(() -> new ModelClient(disabled, mapper));
-        assertEquals("智能客服暂未启用", assertThrows(CustomerServiceException.class, disabled::checkReady).getMessage());
+        assertEquals("AI 服务暂未启用", assertThrows(AiException.class, disabled::checkReady).getMessage());
     }
 
     @Test void rejectsInvalidTimeoutAndEndpoint() {
         properties.setReadTimeoutMs(0);
-        assertThrows(CustomerServiceException.class, properties::checkReady);
+        assertThrows(AiException.class, properties::checkReady);
         properties.setReadTimeoutMs(30000);
         properties.setEndpoint("file:///secret");
-        assertThrows(CustomerServiceException.class, properties::checkReady);
+        assertThrows(AiException.class, properties::checkReady);
     }
 
     @Test void rateLimitDoesNotExposeProviderResponseOrKey() {
         server.expect(anything()).andRespond(withStatus(HttpStatus.TOO_MANY_REQUESTS).body("secret-provider-detail"));
-        String message = assertThrows(CustomerServiceException.class,
+        String message = assertThrows(AiException.class,
                 () -> client.complete(mapper.createArrayNode(), mapper.createArrayNode())).getMessage();
         assertEquals("模型服务繁忙，请稍后重试", message);
         server.verify();
@@ -75,18 +83,18 @@ class ModelClientTest {
 
     @Test void timeoutIsFriendly() {
         server.expect(anything()).andRespond(request -> { throw new IOException("sensitive connection details"); });
-        assertEquals("模型连接失败或超时，请稍后重试", assertThrows(CustomerServiceException.class,
+        assertEquals("模型连接失败或超时，请稍后重试", assertThrows(AiException.class,
                 () -> client.complete(mapper.createArrayNode(), mapper.createArrayNode())).getMessage());
     }
 
     @Test void malformedResponseIsRejected() {
         server.expect(anything()).andRespond(withSuccess("{\"unexpected\":true}", MediaType.APPLICATION_JSON));
-        assertThrows(CustomerServiceException.class, () -> client.complete(mapper.createArrayNode(), mapper.createArrayNode()));
+        assertThrows(AiException.class, () -> client.complete(mapper.createArrayNode(), mapper.createArrayNode()));
     }
 
     @Test void truncatedAnswerIsNotReportedAsSuccess() {
         server.expect(anything()).andRespond(withSuccess("{\"choices\":[{\"finish_reason\":\"length\","
                 + "\"message\":{\"role\":\"assistant\",\"content\":\"partial\"}}]}", MediaType.APPLICATION_JSON));
-        assertThrows(CustomerServiceException.class, () -> client.complete(mapper.createArrayNode(), mapper.createArrayNode()));
+        assertThrows(AiException.class, () -> client.complete(mapper.createArrayNode(), mapper.createArrayNode()));
     }
 }

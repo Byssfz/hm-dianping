@@ -13,7 +13,7 @@
 
 ## 配置和启动
 
-配置位于 `src/main/resources/application.yaml` 的 `customer-service.ai`，当前直接从 YAML 读取：
+配置位于 `src/main/resources/application.yaml` 的 `customer-service.ai`，当前直接从 YAML 读取。该配置现在由智能客服和 AI 探店文案助手共用，前缀保持不变以免影响已有部署：
 
 ```yaml
 customer-service:
@@ -111,9 +111,9 @@ $response | ConvertTo-Json -Depth 10
 - `src/main/java/com/hmdp/controller/CustomerServiceController.java`：HTTP 入口及安全错误消息。
 - `src/main/java/com/hmdp/customer/CustomerService.java`：模型与工具循环。
 - `src/main/java/com/hmdp/customer/CustomerServiceTools.java`：五个查询工具、字段白名单、金额和状态转换。
-- `src/main/java/com/hmdp/customer/ModelClient.java`：HTTP 模型协议、超时与响应解析。
+- `src/main/java/com/hmdp/ai/ModelClient.java`：HTTP 模型协议、超时与响应解析（与 AI 文案助手共用）。
 - `src/main/java/com/hmdp/customer/ConversationStore.java`：Redis 会话、带所有权校验的锁与原子提交。
-- `src/main/java/com/hmdp/customer/AiProperties.java`：模型配置及可用性检查。
+- `src/main/java/com/hmdp/ai/AiProperties.java`：模型配置及可用性检查（与 AI 文案助手共用，配置前缀沿用 `customer-service.ai`）。
 
 商铺详情复用 `IShopService.queryByID()` 的现有缓存；优惠券复用 `IVoucherService.queryVoucherOfShop()`。搜索和订单查询通过现有 Service 的 MyBatis-Plus 查询能力完成，不给模型暴露 Controller 或数据库连接。
 
@@ -130,10 +130,10 @@ Redis 使用 `customer-service:{用户ID:会话ID}`，锁为同键加 `:lock`，
 仅运行新增、使用模拟依赖的测试：
 
 ```powershell
-mvn '-Dtest=com.hmdp.customer.*Test' test
+mvn '-Dtest=com.hmdp.ai.*Test,com.hmdp.customer.*Test' test
 ```
 
-现有 `HmDianPingApplicationTests` 含 Redis 数据装载和批量 ID 生成，不能用不加筛选的 `mvn test` 代替上述命令。`.gitignore` 只额外放行新增客服测试，不把旧测试一起纳入版本管理。
+现有 `HmDianPingApplicationTests` 含 Redis 数据装载和批量 ID 生成，不能用不加筛选的 `mvn test` 代替上述命令。`.gitignore` 只额外放行 AI 相关测试，不把旧测试一起纳入版本管理。
 
 测试覆盖业务查询约束、金额状态转换、工具协议与调用预算、候选追问、Redis key 隔离与提交参数、会话异常、登录拦截器、模型异常及安全返回结构。Redis Lua 的真实执行、生产 SQL 和模型语义没有被模拟测试验证。
 

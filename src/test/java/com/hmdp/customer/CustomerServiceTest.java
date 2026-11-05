@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.hmdp.ai.AiTestFixtures;
+import com.hmdp.ai.ModelClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.redis.RedisConnectionFailureException;
@@ -21,7 +23,7 @@ class CustomerServiceTest {
     ChatRequest request;
 
     @BeforeEach void setup() {
-        service = new CustomerService(ModelClientTest.configured(), model, tools, store, mapper);
+        service = new CustomerService(AiTestFixtures.configured(), model, tools, store, mapper);
         request = new ChatRequest();
         request.setMessage("查询我的订单");
         when(store.acquire(anyLong(), anyString(), anyString())).thenReturn(true);

@@ -1,4 +1,4 @@
-package com.hmdp.customer;
+package com.hmdp.ai;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -8,6 +8,10 @@ import org.springframework.util.StringUtils;
 
 import java.net.URI;
 
+/**
+ * Shared AI model settings used by every AI feature (customer service, blog drafting).
+ * The {@code customer-service.ai} prefix is kept for deployment compatibility.
+ */
 @Getter
 @Setter
 @Component
@@ -20,13 +24,13 @@ public class AiProperties {
     private int connectTimeoutMs = 5000;
     private int readTimeoutMs = 30000;
 
-    // Validate on the chat path: a missing AI configuration must not prevent normal business startup.
+    // Validate on the feature path: a missing AI configuration must not prevent normal business startup.
     public void checkReady() {
         if (!enabled) {
-            throw new CustomerServiceException("智能客服暂未启用");
+            throw new AiException("AI 服务暂未启用");
         }
         if (!StringUtils.hasText(endpoint) || !StringUtils.hasText(model) || !StringUtils.hasText(apiKey)) {
-            throw new CustomerServiceException("智能客服配置不完整，请联系管理员");
+            throw new AiException("AI 服务配置不完整，请联系管理员");
         }
         try {
             URI uri = URI.create(endpoint);
@@ -37,7 +41,7 @@ public class AiProperties {
                 throw new IllegalArgumentException();
             }
         } catch (IllegalArgumentException e) {
-            throw new CustomerServiceException("智能客服地址或超时配置无效，请联系管理员");
+            throw new AiException("AI 服务地址或超时配置无效，请联系管理员");
         }
     }
 }

@@ -4,12 +4,15 @@
 *.class
 *Test.java
 **/test/**
-# Track only the isolated customer-service tests; keep existing data-loading tests ignored.
+# Track only the isolated AI feature tests; keep existing data-loading tests ignored.
 !/src/test/java/
 !/src/test/java/com/
 !/src/test/java/com/hmdp/
 !/src/test/java/com/hmdp/customer/
 !/src/test/java/com/hmdp/customer/*Test.java
+!/src/test/java/com/hmdp/ai/
+!/src/test/java/com/hmdp/ai/*Test.java
+!/src/test/java/com/hmdp/ai/AiTestFixtures.java
 # Local Nginx runtime. Frontend source is tracked under frontend/hmdp.
 /nginx-1.18.0-hmdp/
 
