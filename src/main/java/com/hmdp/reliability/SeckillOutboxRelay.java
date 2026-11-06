@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.stream.*;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -18,6 +19,7 @@ import java.util.Map;
 @Slf4j
 @Configuration
 @EnableScheduling
+@ConditionalOnProperty(name = "hmdp.seckill-outbox.enabled", havingValue = "true", matchIfMissing = true)
 public class SeckillOutboxRelay {
     private final StringRedisTemplate redis;
     private final RocketMQTemplate mq;

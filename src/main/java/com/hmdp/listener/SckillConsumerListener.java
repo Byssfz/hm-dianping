@@ -8,12 +8,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
 import org.apache.rocketmq.spring.core.RocketMQListener;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 @Component
 @Slf4j
+@ConditionalOnProperty(name = "hmdp.seckill-consumer.enabled", havingValue = "true", matchIfMissing = true)
 @RocketMQMessageListener(topic = "hmseckillTopic",consumerGroup = "hmseckill-consumer-group")
 public class SckillConsumerListener implements RocketMQListener<MessageExt> {
     @Autowired
