@@ -2,6 +2,7 @@ package com.hmdp.controller;
 
 
 import com.hmdp.dto.Result;
+import com.hmdp.ratelimit.SeckillRateLimited;
 import com.hmdp.service.IVoucherOrderService;
 import com.hmdp.service.IVoucherService;
 import com.hmdp.service.impl.VoucherServiceImpl;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class VoucherOrderController {
     @Autowired
     private IVoucherOrderService voucherOrderService;
+    @SeckillRateLimited
     @PostMapping("seckill/{id}")
     public Result seckillVoucher(@PathVariable("id") Long voucherId) {
 
