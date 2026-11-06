@@ -10,4 +10,4 @@
 
 Redisson 使用 `spring.redis` 的主机、端口、库、密码和 SSL 设置，与 RedisTemplate 保持一致。
 
-Java 8 定向测试：`mvn '-Dtest=RedisIdWorkerTest,SeckillOutboxRelayTest,OrderStatusTest,SeckillConsumerTest,RedissonConfigTest' test`。单测模拟 Redis、MySQL、RocketMQ；真实 Redis 对正常预扣、重复请求、非法库存输入做过隔离验证。完整真实 Broker 和 MySQL 链路需以隔离联调结果为准。
+Java 8 定向测试：`mvn '-Dtest=RedisIdWorkerTest,SeckillOutboxRelayTest,OrderStatusTest,SeckillConsumerTest,RedissonConfigTest' test`。单测模拟 Redis、MySQL、RocketMQ；真实 Redis 对正常预扣、重复请求、非法库存输入做过隔离验证。另在临时隔离 MySQL、Redis 和 RocketMQ 中验证真实下单、重复消息只扣一次库存，以及 Broker 暂停期间 intent 保留、恢复后最终落库；临时服务已清理。该联调不是生产可靠性或性能压测证明。

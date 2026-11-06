@@ -34,6 +34,9 @@ class SeckillOutboxRelayTest {
         relay.process(record);
         verify(mq).syncSend(eq("hmseckillTopic"), anyString());
         verify(stream, never()).delete(anyString(), any(RecordId.class));
+        doThrow(new IllegalStateException("send timeout: result unknown")).when(mq).syncSend(eq("hmseckillTopic"), anyString());
+        assertThrows(IllegalStateException.class, () -> relay.process(record));
+        verify(stream, never()).delete(anyString(), any(RecordId.class));
         when(orders.getById(101L)).thenReturn(new VoucherOrder().setId(101L).setUserId(7L).setVoucherId(2L));
         relay.process(record);
         verify(stream).delete("stream.orders.reliable.v1", RecordId.of("1-0"));
