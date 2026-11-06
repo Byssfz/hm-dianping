@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.hmdp.ai.AiProperties;
-import com.hmdp.ai.ModelClient;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
@@ -26,12 +25,12 @@ public class CustomerService {
             + "未查到数据、工具报错或缺少退款政策等依据时如实说明，不编造规则。你不能下单、付款、取消或退款。"
             + "列表为空时说明未找到；truncated=true时说明列表不完整。回答简洁，不展示内部工具协议。";
     private final AiProperties properties;
-    private final ModelClient model;
+    private final CustomerChatModelClient model;
     private final CustomerServiceTools tools;
     private final ConversationStore conversations;
     private final ObjectMapper mapper;
 
-    public CustomerService(AiProperties properties, ModelClient model, CustomerServiceTools tools,
+    public CustomerService(AiProperties properties, CustomerChatModelClient model, CustomerServiceTools tools,
                            ConversationStore conversations, ObjectMapper mapper) {
         this.properties = properties;
         this.model = model;

@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.hmdp.ai.AiTestFixtures;
-import com.hmdp.ai.ModelClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.redis.RedisConnectionFailureException;
@@ -16,7 +15,7 @@ import static org.mockito.Mockito.*;
 
 class CustomerServiceTest {
     ObjectMapper mapper = new ObjectMapper();
-    ModelClient model = mock(ModelClient.class);
+    CustomerChatModelClient model = mock(CustomerChatModelClient.class);
     CustomerServiceTools tools = mock(CustomerServiceTools.class);
     ConversationStore store = mock(ConversationStore.class);
     CustomerService service;
