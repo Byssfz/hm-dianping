@@ -147,8 +147,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
             RLock lock = redissonClient.getLock("order:" + userId);
             boolean isLock = lock.tryLock();
             if (!isLock) {
-                log.error("不允许重复下单！");
-                return;
+                throw new IllegalStateException("order lock busy; retry message");
             }
             try {
                 IVoucherOrderService proxy = (IVoucherOrderService) AopContext.currentProxy();
@@ -171,12 +170,8 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
                 // 2.1.不为0 ，代表没有购买资格
                 return Result.fail(r == 1 ? "库存不足" : "不能重复下单");
             }
-            VoucherOrder order=new VoucherOrder();
-            order.setVoucherId(voucherId);
-            order.setId(orderId);
-            order.setUserId(userId);
-            rocketMQTemplate.syncSend("hmseckillTopic",JSONUtil.toJsonStr(order));
-            return Result.ok(orderId);
+            // The Redis stream intent is dispatched to RocketMQ asynchronously.
+            return Result.ok(Long.toString(orderId));
         }
 
             //stream
@@ -259,12 +254,16 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         public void createVoucherOrder(VoucherOrder voucherOrder) {
 
             Long userId = voucherOrder.getUserId();
+            VoucherOrder existing = getById(voucherOrder.getId());
+            if (existing != null) {
+                if (existing.getUserId().equals(userId) && existing.getVoucherId().equals(voucherOrder.getVoucherId())) return;
+                throw new IllegalStateException("order id collision");
+            }
 
             int count = query().eq("user_id", userId).eq("voucher_id", voucherOrder.getVoucherId()).count();
 
             if (count > 0) {
-                log.error("用户已经购买过一次");
-                return;
+                throw new IllegalStateException("another order already exists for user and voucher");
             }
 
             boolean success = seckillVoucherService.update()
@@ -273,10 +272,9 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
                     .gt("stock", 0)
                     .update();
             if (!success) {
-                log.error("库存不足");
-                return;
+                throw new IllegalStateException("database stock unavailable; reconcile reservation");
             }
-            save(voucherOrder);
+            if (!save(voucherOrder)) throw new IllegalStateException("order save failed");
         }
 }
 
