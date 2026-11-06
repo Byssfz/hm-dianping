@@ -25,3 +25,5 @@
 
 !/src/test/java/com/hmdp/ratelimit/
 !/src/test/java/com/hmdp/ratelimit/SeckillRateLimitAspectTest.java
+!/src/test/java/com/hmdp/orderclose/
+!/src/test/java/com/hmdp/orderclose/OrderCloseTest.java
