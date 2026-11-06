@@ -39,7 +39,7 @@ public class CacheClient {
     }
 
     public <R,ID> R queryWithPassThrough(String prefix, ID id, Class<R> type,
-                                         Function<ID,R> dbFallback,Long time,TimeUnit timeUnit){
+                                         Function<ID,R> dbFallback, Long time, Long nullTime, TimeUnit timeUnit){
         String key=prefix+id;
         String json = stringRedisTemplate.opsForValue().get(key);
         if(StrUtil.isNotBlank(json)){
@@ -52,7 +52,7 @@ public class CacheClient {
         R r = dbFallback.apply(id);
 
         if(r==null){
-            this.set(key,"",time,timeUnit);
+            this.set(key,"",nullTime,timeUnit);
             return null;
         }
 

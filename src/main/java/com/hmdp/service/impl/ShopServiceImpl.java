@@ -6,6 +6,7 @@ import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.github.benmanes.caffeine.cache.Cache;
 import com.hmdp.dto.Result;
 import com.hmdp.entity.Shop;
 import com.hmdp.mapper.ShopMapper;
@@ -24,6 +25,9 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.domain.geo.GeoReference;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Resource;
 import java.time.LocalDateTime;
@@ -45,22 +49,31 @@ import static com.hmdp.utils.RedisConstants.*;
  * @since 2021-12-22
  */
 @Service
+@Slf4j
 public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IShopService {
 
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
     @Resource
     private CacheClient cacheClient;
+    @Resource
+    private Cache<Long, Shop> shopLocalCache;
     @Override
     public Result queryByID(Long id) {
-        //Shop shop = queryWithLogicalExpire(id);
-        Shop shop=cacheClient.queryWithPassThrough(CACHE_SHOP_KEY,id, Shop.class, this::getById,CACHE_NULL_TTL,TimeUnit.MINUTES);
-        //Shop shop = cacheClient.queryWithLogicalExpire(CACHE_SHOP_KEY, id, Shop.class, this::getById, 2L, TimeUnit.MINUTES);
+        Shop shop = shopLocalCache.getIfPresent(id);
+        if (shop == null) {
+            shop = cacheClient.queryWithPassThrough(CACHE_SHOP_KEY, id, Shop.class, this::getById,
+                    CACHE_SHOP_TTL, CACHE_NULL_TTL, TimeUnit.MINUTES);
+            if (shop != null) {
+                shopLocalCache.put(id, BeanUtil.copyProperties(shop, Shop.class));
+            }
+        }
 
         if(shop==null){
             return Result.fail("店铺不存在! ");
         }
-        return Result.ok(shop);
+        // Do not expose the mutable instance held in the shared local cache.
+        return Result.ok(BeanUtil.copyProperties(shop, Shop.class));
     }
     private static final ExecutorService CACHE_REBUILD_EXECUTOR = Executors.newFixedThreadPool(10);
 
@@ -186,8 +199,22 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
         if(id==null){
             return Result.fail("店铺id不能为空");
         }
-        updateById(shop);
-        stringRedisTemplate.delete(CACHE_SHOP_KEY + id);
+        if (!updateById(shop)) {
+            return Result.fail("店铺不存在或更新失败");
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                try {
+                    stringRedisTemplate.delete(CACHE_SHOP_KEY + id);
+                } catch (RuntimeException e) {
+                    // The database has already committed; report the cache failure and still clear local data.
+                    log.error("删除商铺 Redis 缓存失败，商铺 id={}", id, e);
+                } finally {
+                    shopLocalCache.invalidate(id);
+                }
+            }
+        });
         return Result.ok();
     }
 

@@ -20,3 +20,5 @@
 /.codex-chrome-demo/
 /docs/customer-service-ui-demo*.png
 /docs/customer-service-ui-demo*.jpg
+!/src/test/java/com/hmdp/cache/
+!/src/test/java/com/hmdp/cache/ShopMultiLevelCacheTest.java
