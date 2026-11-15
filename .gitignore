@@ -3,4 +3,27 @@
 *.iml
 *.class
 *Test.java
-**/test/
+**/test/**
+# Track only the isolated AI feature tests; keep existing data-loading tests ignored.
+!/src/test/java/
+!/src/test/java/com/
+!/src/test/java/com/hmdp/
+!/src/test/java/com/hmdp/customer/
+!/src/test/java/com/hmdp/customer/*Test.java
+!/src/test/java/com/hmdp/ai/
+!/src/test/java/com/hmdp/ai/*Test.java
+!/src/test/java/com/hmdp/ai/AiTestFixtures.java
+# Local Nginx runtime. Frontend source is tracked under frontend/hmdp.
+/nginx-1.18.0-hmdp/
+
+# Local browser profiles and generated UI previews.
+/.codex-chrome-demo/
+/docs/customer-service-ui-demo*.png
+/docs/customer-service-ui-demo*.jpg
+!/src/test/java/com/hmdp/cache/
+!/src/test/java/com/hmdp/cache/ShopMultiLevelCacheTest.java
+
+!/src/test/java/com/hmdp/ratelimit/
+!/src/test/java/com/hmdp/ratelimit/SeckillRateLimitAspectTest.java
+!/src/test/java/com/hmdp/orderclose/
+!/src/test/java/com/hmdp/orderclose/OrderCloseTest.java

@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>黑马点评 · 智能客服 Demo</title>
+  <style>
+    :root {
+      --brand: #ff6633;
+      --brand-deep: #e94e1b;
+      --brand-soft: #fff0e9;
+      --ink: #252525;
+      --muted: #858585;
+      --line: #ece9e7;
+      --paper: #ffffff;
+      --canvas: #efefef;
+      --success: #1c9b69;
+      --shadow: 0 18px 52px rgba(55, 32, 22, .22);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+      color: var(--ink);
+      background: #edf0f3;
+    }
+
+    button, textarea { font: inherit; }
+
+    body {
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+    }
+
+    .phone {
+      position: relative;
+      width: min(100vw, 375px);
+      height: min(100vh, 667px);
+      overflow: hidden;
+      background: var(--canvas);
+      box-shadow: 0 10px 42px rgba(38, 45, 51, .18);
+    }
+
+    .home {
+      position: absolute;
+      inset: 0;
+      background: #f2f2f2;
+    }
+
+    .search-bar {
+      height: 52px;
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #fff;
+      background: var(--brand);
+    }
+
+    .city {
+      font-size: 13px;
+      font-weight: 650;
+      white-space: nowrap;
+    }
+
+    .search {
+      height: 32px;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 0 13px;
+      border-radius: 18px;
+      background: #fff;
+      color: #b1b1b1;
+      font-size: 12px;
+    }
+
+    .search::before {
+      content: "⌕";
+      font: 18px/1 Georgia, serif;
+      transform: rotate(-15deg);
+    }
+
+    .person {
+      width: 22px;
+      height: 22px;
+      border: 1.5px solid rgba(255,255,255,.9);
+      border-radius: 50%;
+      position: relative;
+    }
+
+    .person::before {
+      content: "";
+      position: absolute;
+      width: 5px;
+      height: 5px;
+      left: 7px;
+      top: 4px;
+      border: 1px solid #fff;
+      border-radius: 50%;
+    }
+
+    .person::after {
+      content: "";
+      position: absolute;
+      width: 10px;
+      height: 5px;
+      left: 4px;
+      bottom: 3px;
+      border: 1px solid #fff;
+      border-radius: 8px 8px 3px 3px;
+    }
+
+    .types {
+      height: 165px;
+      padding: 10px 7px 4px;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 2px 6px;
+      background: #fff;
+      box-shadow: 0 1px 3px rgba(0,0,0,.08);
+    }
+
+    .type {
+      text-align: center;
+      font-size: 10px;
+      color: #333;
+    }
+
+    .type img {
+      display: block;
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 1px;
+      object-fit: contain;
+    }
+
+    .feed {
+      padding: 8px 6px 68px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 7px;
+    }
+
+    .feed-card {
+      min-height: 206px;
+      overflow: hidden;
+      background: #fff;
+      border-radius: 5px;
+    }
+
+    .feed-card img {
+      width: 100%;
+      height: 155px;
+      object-fit: cover;
+    }
+
+    .feed-card p {
+      margin: 6px 8px 3px;
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    .feed-meta {
+      padding: 2px 8px 8px;
+      color: #8a8a8a;
+      font-size: 9px;
+    }
+
+    .nav {
+      position: absolute;
+      z-index: 1;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 57px;
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      background: #fff;
+      box-shadow: 0 -1px 5px rgba(0,0,0,.08);
+      color: #8b8b8b;
+      font-size: 9px;
+    }
+
+    .nav-item { text-align: center; min-width: 46px; }
+    .nav-icon { display: block; margin-bottom: 3px; font-size: 21px; line-height: 1; }
+    .nav-item.active { color: var(--brand); }
+    .nav-add {
+      width: 39px;
+      height: 39px;
+      margin-top: -13px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--brand);
+      color: #fff;
+      font-size: 26px;
+      box-shadow: 0 3px 10px rgba(255,102,51,.34);
+    }
+
+    .veil {
+      position: absolute;
+      z-index: 4;
+      inset: 0;
+      background: rgba(26, 20, 18, .2);
+      backdrop-filter: blur(1.2px);
+    }
+
+    .chat-sheet {
+      position: absolute;
+      z-index: 5;
+      left: 8px;
+      right: 8px;
+      bottom: 8px;
+      height: 574px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: #faf9f8;
+      border-radius: 22px 22px 15px 15px;
+      box-shadow: var(--shadow);
+      animation: sheet-in .42s cubic-bezier(.22,.82,.3,1) both;
+    }
+
+    .ticket-tab {
+      position: absolute;
+      z-index: 2;
+      top: 0;
+      left: 50%;
+      width: 62px;
+      height: 16px;
+      transform: translateX(-50%);
+      background: var(--brand);
+      clip-path: polygon(0 0,100% 0,89% 100%,74% 72%,58% 100%,42% 72%,26% 100%,11% 72%);
+    }
+
+    .chat-head {
+      position: relative;
+      min-height: 74px;
+      padding: 20px 16px 12px;
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid var(--line);
+      background: var(--paper);
+    }
+
+    .assistant-mark {
+      position: relative;
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      margin-right: 11px;
+      border-radius: 14px 14px 14px 5px;
+      background: var(--brand);
+      color: #fff;
+      font-size: 19px;
+      font-weight: 800;
+      box-shadow: 0 5px 12px rgba(255,102,51,.25);
+    }
+
+    .assistant-mark::after {
+      content: "✦";
+      position: absolute;
+      top: -6px;
+      right: -5px;
+      color: #ffb037;
+      font-size: 13px;
+      text-shadow: 0 1px 0 #fff;
+    }
+
+    .head-copy { flex: 1; }
+    .head-copy strong { display: block; font-size: 15px; letter-spacing: .02em; }
+    .head-copy span { display: flex; align-items: center; gap: 5px; margin-top: 4px; font-size: 10px; color: var(--muted); }
+    .online-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
+
+    .new-chat {
+      padding: 6px 8px;
+      border: 0;
+      border-radius: 8px;
+      background: var(--brand-soft);
+      color: var(--brand-deep);
+      font-size: 10px;
+      cursor: pointer;
+    }
+
+    .messages {
+      flex: 1;
+      min-height: 0;
+      padding: 15px 13px 10px;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      scrollbar-width: none;
+    }
+
+    .messages::-webkit-scrollbar { display: none; }
+
+    .time-label {
+      margin: 0 0 12px;
+      text-align: center;
+      color: #aaa;
+      font: 9px/1 "Arial Narrow", sans-serif;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .message {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-bottom: 13px;
+      animation: message-in .25s ease-out both;
+    }
+
+    .message.user { justify-content: flex-end; }
+
+    .mini-mark {
+      width: 27px;
+      height: 27px;
+      flex: 0 0 27px;
+      display: grid;
+      place-items: center;
+      margin-top: 2px;
+      border-radius: 9px 9px 9px 3px;
+      background: var(--brand);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .bubble {
+      max-width: 79%;
+      padding: 10px 12px;
+      border-radius: 4px 15px 15px 15px;
+      background: #fff;
+      box-shadow: 0 2px 8px rgba(49, 37, 32, .07);
+      font-size: 12px;
+      line-height: 1.65;
+      white-space: pre-wrap;
+    }
+
+    .user .bubble {
+      border-radius: 15px 4px 15px 15px;
+      background: var(--brand);
+      color: #fff;
+      box-shadow: 0 4px 10px rgba(255,102,51,.18);
+    }
+
+    .source {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 7px;
+      padding-top: 7px;
+      border-top: 1px dashed #e8dfda;
+      color: var(--success);
+      font-size: 9px;
+    }
+
+    .shop-result {
+      width: min(82%, 255px);
+      margin: -5px 0 14px 35px;
+      padding: 11px 12px 10px;
+      border: 1px solid #eee5e0;
+      border-radius: 12px;
+      background: #fff;
+      box-shadow: 0 3px 12px rgba(49,37,32,.06);
+    }
+
+    .shop-result::before {
+      content: "商铺小票";
+      display: block;
+      margin: -2px 0 8px;
+      color: var(--brand-deep);
+      font: 700 9px/1 "Arial Narrow", "Microsoft YaHei", sans-serif;
+      letter-spacing: .13em;
+    }
+
+    .shop-name { font-size: 13px; font-weight: 700; }
+    .shop-line { margin-top: 5px; color: #6e6e6e; font-size: 10px; line-height: 1.4; }
+    .shop-line b { color: var(--ink); font-weight: 600; }
+
+    .quick-wrap {
+      padding: 8px 13px 10px;
+      border-top: 1px solid rgba(236,233,231,.7);
+      background: rgba(250,249,248,.97);
+    }
+
+    .quick-label {
+      margin: 0 0 7px 2px;
+      color: #999;
+      font-size: 9px;
+    }
+
+    .quick-list {
+      display: flex;
+      gap: 7px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .quick-list::-webkit-scrollbar { display: none; }
+
+    .quick {
+      flex: 0 0 auto;
+      height: 29px;
+      padding: 0 11px;
+      border: 1px solid #ffd2c2;
+      border-radius: 15px;
+      background: #fff;
+      color: #9a4225;
+      font-size: 10px;
+      cursor: pointer;
+    }
+
+    .composer {
+      min-height: 59px;
+      padding: 8px 10px;
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      background: #fff;
+      border-top: 1px solid var(--line);
+    }
+
+    .composer textarea {
+      height: 40px;
+      min-height: 40px;
+      max-height: 76px;
+      flex: 1;
+      resize: none;
+      outline: 0;
+      padding: 10px 12px;
+      border: 1px solid #e5e2df;
+      border-radius: 13px;
+      background: #f7f6f5;
+      color: var(--ink);
+      font-size: 12px;
+      line-height: 18px;
+    }
+
+    .composer textarea:focus { border-color: #ffad91; background: #fff; }
+
+    .send {
+      width: 42px;
+      height: 40px;
+      flex: 0 0 42px;
+      border: 0;
+      border-radius: 13px;
+      background: var(--brand);
+      color: #fff;
+      font-size: 16px;
+      cursor: pointer;
+      box-shadow: 0 4px 11px rgba(255,102,51,.24);
+    }
+
+    .send:active, .quick:active, .new-chat:active { transform: translateY(1px); }
+
+    .typing {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      min-width: 47px;
+      min-height: 37px;
+    }
+
+    .typing i {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #c5a99d;
+      animation: blink 1s infinite ease-in-out;
+    }
+
+    .typing i:nth-child(2) { animation-delay: .15s; }
+    .typing i:nth-child(3) { animation-delay: .3s; }
+
+    button:focus-visible, textarea:focus-visible {
+      outline: 2px solid #202020;
+      outline-offset: 2px;
+    }
+
+    @keyframes sheet-in {
+      from { transform: translateY(45px); opacity: .4; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    @keyframes message-in {
+      from { transform: translateY(5px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    @keyframes blink {
+      0%, 65%, 100% { transform: translateY(0); opacity: .35; }
+      32% { transform: translateY(-3px); opacity: 1; }
+    }
+
+    @media (max-height: 620px) {
+      .chat-sheet { height: calc(100% - 18px); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; scroll-behavior: auto !important; }
+    }
+  </style>
+</head>
+<body>
+<main class="phone" aria-label="黑马点评智能客服界面演示">
+  <section class="home" aria-hidden="true">
+    <header class="search-bar">
+      <span class="city">杭州⌄</span>
+      <div class="search">请输入商户名、地点</div>
+      <span class="person"></span>
+    </header>
+    <div class="types">
+      <div class="type"><img src="./imgs/types/ms.png" alt="">美食</div>
+      <div class="type"><img src="./imgs/types/KTV.png" alt="">KTV</div>
+      <div class="type"><img src="./imgs/types/lrmf.png" alt="">丽人·美发</div>
+      <div class="type"><img src="./imgs/types/mjmj.png" alt="">美睫·美甲</div>
+      <div class="type"><img src="./imgs/types/amzl.png" alt="">按摩·足疗</div>
+      <div class="type"><img src="./imgs/types/spa.png" alt="">美容SPA</div>
+      <div class="type"><img src="./imgs/types/qzyl.png" alt="">亲子游乐</div>
+      <div class="type"><img src="./imgs/types/jiuba.png" alt="">酒吧</div>
+      <div class="type"><img src="./imgs/types/hpg.png" alt="">轰趴馆</div>
+      <div class="type"><img src="./imgs/types/jsyd.png" alt="">健身运动</div>
+    </div>
+    <div class="feed">
+      <article class="feed-card"><img src="./imgs/blogs/blog1.jpg" alt=""><p>无尽浪漫的夜晚，在万花丛中摇晃着酒杯</p><div class="feed-meta">可可今天不吃肉 · ♡ 12</div></article>
+      <article class="feed-card"><img src="./imgs/blogs/15/9/cea51d9b-ac15-49f6-b9f1-9cf81e9b9c85.jpg" alt=""><p>人均30，杭州这家港式茶餐厅我疯狂打Call</p><div class="feed-meta">阿布 · ♡ 36</div></article>
+    </div>
+    <nav class="nav">
+      <div class="nav-item active"><span class="nav-icon">⌂</span>首页</div>
+      <div class="nav-item"><span class="nav-icon">⌖</span>地图</div>
+      <div class="nav-add">＋</div>
+      <div class="nav-item"><span class="nav-icon">◌</span>消息</div>
+      <div class="nav-item"><span class="nav-icon">♙</span>我的</div>
+    </nav>
+  </section>
+
+  <div class="veil"></div>
+
+  <section class="chat-sheet" aria-label="智能客服聊天窗口">
+    <div class="ticket-tab" aria-hidden="true"></div>
+    <header class="chat-head">
+      <div class="assistant-mark" aria-hidden="true">马</div>
+      <div class="head-copy">
+        <strong>点评小助手</strong>
+        <span><i class="online-dot"></i>在线 · 可查询实时商铺与订单</span>
+      </div>
+      <button class="new-chat" id="newChat" type="button">新会话</button>
+    </header>
+
+    <div class="messages" id="messages" aria-live="polite">
+      <div class="time-label">Today · 17:30</div>
+      <div class="message assistant">
+        <div class="mini-mark">马</div>
+        <div class="bubble">你好，我是点评小助手。你可以问我商铺营业时间、优惠券规则，或者查询自己的订单。</div>
+      </div>
+      <div class="message user"><div class="bubble">湖滨银泰附近有什么茶馆？</div></div>
+      <div class="message assistant">
+        <div class="mini-mark">马</div>
+        <div class="bubble">找到 3 家相关商铺。离你较近的是「茶百道·湖滨店」，今天营业到 22:30。
+          <span class="source">● 已查询实时商铺数据</span>
+        </div>
+      </div>
+      <div class="shop-result">
+        <div class="shop-name">茶百道·湖滨店</div>
+        <div class="shop-line"><b>营业时间</b>　10:00–22:30</div>
+        <div class="shop-line"><b>地址</b>　延安路湖滨商圈 88 号</div>
+        <div class="shop-line"><b>当前优惠</b>　2 张可用优惠券</div>
+      </div>
+    </div>
+
+    <div class="quick-wrap">
+      <p class="quick-label">你可以这样问</p>
+      <div class="quick-list">
+        <button class="quick" data-question="这家店有哪些优惠券？">查优惠券</button>
+        <button class="quick" data-question="帮我查询最近的订单">看我的订单</button>
+        <button class="quick" data-question="这家店几点关门？">查营业时间</button>
+      </div>
+    </div>
+
+    <form class="composer" id="composer">
+      <textarea id="input" aria-label="输入问题" placeholder="问商铺、优惠券或我的订单…" maxlength="2000"></textarea>
+      <button class="send" type="submit" aria-label="发送消息">➤</button>
+    </form>
+  </section>
+</main>
+
+<script>
+  const messages = document.getElementById('messages');
+  const input = document.getElementById('input');
+  const composer = document.getElementById('composer');
+  const newChat = document.getElementById('newChat');
+
+  const mockReplies = {
+    '这家店有哪些优惠券？': '这家店目前有 2 张优惠券：\n① 19.9 元抵 30 元\n② 39.9 元双人套餐券\n具体使用时段以券详情规则为准。',
+    '帮我查询最近的订单': '你最近有 1 笔订单：代金券订单 75421，当前状态为「已支付」。',
+    '这家店几点关门？': '这家店今天 22:30 关门，建议至少提前 30 分钟到店。'
+  };
+
+  function addMessage(role, text) {
+    const row = document.createElement('div');
+    row.className = 'message ' + role;
+    if (role === 'assistant') {
+      const mark = document.createElement('div');
+      mark.className = 'mini-mark';
+      mark.textContent = '马';
+      row.appendChild(mark);
+    }
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.textContent = text;
+    row.appendChild(bubble);
+    messages.appendChild(row);
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  function addTyping() {
+    const row = document.createElement('div');
+    row.className = 'message assistant';
+    row.id = 'typingRow';
+    row.innerHTML = '<div class="mini-mark">马</div><div class="bubble typing"><i></i><i></i><i></i></div>';
+    messages.appendChild(row);
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  function ask(question) {
+    const value = question.trim();
+    if (!value) return;
+    addMessage('user', value);
+    input.value = '';
+    addTyping();
+    setTimeout(() => {
+      const typing = document.getElementById('typingRow');
+      if (typing) typing.remove();
+      addMessage('assistant', mockReplies[value] || '我可以帮你继续查询。Demo 当前使用模拟回复，正式接入后这里会显示真实客服接口返回的内容。');
+    }, 720);
+  }
+
+  composer.addEventListener('submit', event => {
+    event.preventDefault();
+    ask(input.value);
+  });
+
+  input.addEventListener('keydown', event => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      ask(input.value);
+    }
+  });
+
+  document.querySelectorAll('.quick').forEach(button => {
+    button.addEventListener('click', () => ask(button.dataset.question));
+  });
+
+  newChat.addEventListener('click', () => {
+    messages.innerHTML = '<div class="time-label">New conversation</div>';
+    addMessage('assistant', '新会话已开始。想查哪家店、哪张优惠券，或者哪笔订单？');
+    input.focus();
+  });
+</script>
+</body>
+</html>

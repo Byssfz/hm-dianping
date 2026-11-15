@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+  <title>黑马点评</title>
+  <!-- 引入样式 -->
+  <link rel="stylesheet" href="./css/element.css">
+  <link href="./css/main.css" rel="stylesheet">
+  <link href="./css/blog-edit.css" rel="stylesheet">
+
+  <style type="text/css">
+
+  </style>
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <div class="header-cancel-btn" @click="goBack">取消</div>
+    <div class="header-title">&nbsp;&nbsp;发笔记<i class="el-icon-info"></i></div>
+    <div class="header-commit">
+      <div class="header-commit-btn" @click="submitBlog">发布</div>
+    </div>
+  </div>
+  <div class="upload-box">
+    <input type="file" @change="fileSelected" name="file" ref="fileInput" style="display: none">
+    <div class="upload-btn" @click="openFileDialog">
+      <i class="el-icon-camera"></i>
+      <div style="font-size: 12px;line-height: 12px">上传照片</div>
+    </div>
+    <div class="pic-list">
+      <div class="pic-box" v-for="(f,i) in fileList" :key="i">
+        <img :src="f" alt="">
+        <i class="el-icon-close" @click="deletePic(i)"></i>
+      </div>
+    </div>
+  </div>
+  <div class="blog-title">
+    <input v-model="params.title" type="text" placeholder="填写标题更容易上首页哦~">
+  </div>
+  <div class="blog-content">
+    <textarea v-model="params.content" placeholder="最近打卡了什么地方，有什么新奇体验呢？"></textarea>
+  </div>
+  <div class="ai-draft">
+    <div class="ai-draft-head" @click="aiOpen = !aiOpen">
+      <span class="ai-draft-badge">AI</span>
+      <div class="ai-draft-heading">
+        <strong>探店文案助手</strong>
+        <span>选好商户，写几个关键词，标题和正文就有着落了</span>
+      </div>
+      <span class="ai-draft-toggle">{{ aiOpen ? '收起' : '帮我写' }}<i :class="aiOpen ? 'el-icon-arrow-up' : 'el-icon-arrow-down'"></i></span>
+    </div>
+    <div v-show="aiOpen" class="ai-draft-body">
+      <div class="ai-draft-styles">
+        <button type="button" v-for="s in aiStyles" :key="s.value"
+                :class="{ active: aiStyle === s.value }" :disabled="aiLoading"
+                @click="aiStyle = s.value">{{ s.label }}</button>
+      </div>
+      <textarea v-model="aiKeywords" class="ai-draft-keywords" rows="2" maxlength="120" :disabled="aiLoading"
+                placeholder="写几个关键词，如：蟹黄面、环境安静、适合约会（120 字以内）"></textarea>
+      <div class="ai-draft-footer">
+        <span class="ai-draft-shop"><i class="el-icon-map-location"></i>{{ selectedShop.name || '未关联商户（可选）' }}</span>
+        <button type="button" class="ai-draft-submit" :disabled="aiLoading || !aiKeywords.trim()" @click="generateDraft">
+          <i class="el-icon-magic-stick"></i>{{ aiLoading ? '生成中…' : (aiHasDraft ? '再写一版' : '生成文案') }}
+        </button>
+      </div>
+      <div v-if="aiError" class="ai-draft-error"><i class="el-icon-warning-outline"></i>{{ aiError }}</div>
+      <div v-else-if="aiHasDraft" class="ai-draft-hint">已填入标题和正文，记得按真实体验再改一改。</div>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <div class="blog-shop" @click="showDialog=true">
+    <div class="shop-left">关联商户</div>
+    <div v-if="selectedShop.name">{{selectedShop.name}}</div>
+    <div v-else>去选择&nbsp;<i class="el-icon-arrow-right"></i></div>
+  </div>
+  <div class="mask" v-show="showDialog" @click="showDialog=false"></div>
+
+  <transition name="el-zoom-in-bottom">
+    <div class="shop-dialog" v-show="showDialog">
+      <div class="blog-shop">
+        <div class="shop-left">关联商户</div>
+      </div>
+      <div class="search-bar">
+        <div class="city-select">杭州 <i class="el-icon-arrow-down"></i></div>
+        <div class="search-input">
+          <i class="el-icon-search" @click="queryShops"></i>
+          <input v-model="shopName" type="text" placeholder="搜索商户名称">
+        </div>
+      </div>
+      <div class="shop-list">
+        <div v-for="s in shops" class="shop-item" @click="selectShop(s)">
+          <div class="shop-name">{{s.name}}</div>
+          <div>{{s.area}}</div>
+        </div>
+      </div>
+    </div>
+  </transition>
+</div>
+<script src="./js/vue.js"></script>
+<script src="./js/axios.min.js"></script>
+<!-- 引入组件库 -->
+<script src="./js/element.js"></script>
+<script src="./js/common.js"></script>
+<script src="./js/footer.js"></script>
+<script>
+
+  const app = new Vue({
+    el: "#app",
+    data() {
+      return {
+        util,
+        fileList: [], // 文件列表
+        // 预置空字段，保证 AI 填写的标题和正文能触发 Vue 响应式更新
+        params: {title: "", content: ""},
+        showDialog: false, //
+        shops: [], // 商户信息
+        shopName: "", //商户名称
+        selectedShop: {}, // 选中的商户
+        aiOpen: false, // AI 文案面板是否展开
+        aiKeywords: "", // AI 关键词
+        aiStyle: "xiaohongshu", // 写作风格
+        aiStyles: [
+          {value: "xiaohongshu", label: "小红书"},
+          {value: "casual", label: "朋友分享"},
+          {value: "concise", label: "简洁信息"}
+        ],
+        aiLoading: false,
+        aiError: "",
+        aiHasDraft: false,
+      }
+    },
+    created() {
+      this.checkLogin();
+      this.queryShops();
+    },
+    methods: {
+      queryShops() {
+        axios.get("/shop/of/name?name=" + this.shopName)
+          .then(({data}) => this.shops = data)
+          .catch(this.$message.error)
+      },
+      selectShop(s) {
+        this.selectedShop = s;
+        this.showDialog = false;
+      },
+      submitBlog() {
+        let {...data} = this.params;
+        data.images = this.fileList.join(",");
+        data.shopId = this.selectedShop.id;
+        axios.post("/blog", data)
+          .then(resp => location.href = "/info.html")
+          .catch(this.$message.error)
+      },
+      openFileDialog() {
+        this.$refs.fileInput.click();
+      },
+      generateDraft() {
+        const keywords = this.aiKeywords.trim();
+        if (!keywords || this.aiLoading) return;
+        const run = () => {
+          this.aiLoading = true;
+          this.aiError = "";
+          axios.post("/ai/blog/draft", {
+            shopId: this.selectedShop.id ? String(this.selectedShop.id) : "",
+            keywords: keywords,
+            style: this.aiStyle
+          }, {timeout: 60000})
+            .then(({data}) => {
+              if (!data || typeof data.title !== "string" || typeof data.content !== "string") {
+                throw "文案返回格式异常，请稍后重试";
+              }
+              this.params.title = data.title;
+              const tags = Array.isArray(data.tags)
+                ? data.tags.filter(t => typeof t === "string" && t.trim())
+                : [];
+              this.params.content = data.content + (tags.length ? "\n\n" + tags.map(t => "#" + t).join(" ") : "");
+              this.aiHasDraft = true;
+              this.$message.success("文案已生成，可继续修改");
+            })
+            .catch(error => {
+              this.aiError = typeof error === "string" ? error : "文案生成失败，请稍后重试";
+            })
+            .finally(() => {
+              this.aiLoading = false;
+            });
+        };
+        if (String(this.params.content || "").trim()) {
+          this.$confirm("生成后会覆盖当前正文，是否继续？", "AI 文案助手", {
+            confirmButtonText: "继续生成",
+            cancelButtonText: "取消",
+            type: "warning"
+          }).then(run).catch(() => {});
+        } else {
+          run();
+        }
+      },
+      fileSelected() {
+        let file = this.$refs.fileInput.files[0];
+        let formData = new FormData();
+        formData.append("file", file);
+        const config = {
+          headers: {"Content-Type": "multipart/form-data;boundary=" + new Date().getTime()}
+        };
+        axios
+          .post("/upload/blog", formData, config)
+          .then(({data}) => this.fileList.push('/imgs' + data))
+          .catch(this.$message.error);
+      },
+      deletePic(i) {
+        axios.get("/upload/blog/delete?name=" + this.fileList[i])
+          .then(() => this.fileList.splice(i, 1))
+          .catch(this.$message.error)
+      },
+      checkLogin() {
+        // 获取token
+        let token = sessionStorage.getItem("token");
+        if (!token) {
+          location.href = "login.html"
+        }
+        // 查询用户信息
+        axios.get("/user/me")
+          .then()
+          .catch(err => {
+            this.$message.error(err);
+            setTimeout(() => location.href = "login.html", 200)
+          })
+      },
+      goBack() {
+        history.back();
+      },
+      handleRemove(file) {
+        console.log(file);
+      }
+    },
+
+  })
+</script>
+</body>
+</html>

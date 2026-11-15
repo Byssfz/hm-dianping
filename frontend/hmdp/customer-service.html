@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+  <title>点评小助手</title>
+  <link rel="stylesheet" href="./css/element.css">
+  <link rel="stylesheet" href="./css/main.css">
+  <link rel="stylesheet" href="./css/customer-service.css">
+</head>
+<body>
+<div id="app" v-cloak>
+  <main class="service-page">
+    <header class="service-header">
+      <button class="icon-button" type="button" aria-label="返回" @click="goBack"><i class="el-icon-arrow-left"></i></button>
+      <div class="assistant-avatar" aria-hidden="true">马</div>
+      <div class="assistant-info">
+        <strong>点评小助手</strong>
+        <span><i class="online-dot"></i>在线 · 商铺、优惠券与订单查询</span>
+      </div>
+      <button class="new-chat-button" type="button" :disabled="sending" @click="newConversation">新会话</button>
+    </header>
+
+    <section v-if="shopId" class="context-card">
+      <div><span class="context-label">正在咨询</span><strong>{{ shopName || ('商铺 #' + shopId) }}</strong></div>
+      <button type="button" @click="clearShopContext">咨询其他商铺</button>
+    </section>
+
+    <section ref="messages" class="message-list" aria-live="polite">
+      <div class="date-label">点评小助手为你服务</div>
+      <div v-for="(item, index) in messages" :key="index" class="message-row" :class="item.role">
+        <div v-if="item.role === 'assistant'" class="message-avatar" aria-hidden="true">马</div>
+        <div class="message-content">
+          <div class="message-bubble">{{ item.content }}</div>
+          <button v-if="item.retry" class="retry-button" type="button" :disabled="sending" @click="retry(item.retry)"><i class="el-icon-refresh-right"></i> 重新发送</button>
+        </div>
+      </div>
+      <div v-if="sending" class="message-row assistant">
+        <div class="message-avatar" aria-hidden="true">马</div>
+        <div class="message-bubble typing" aria-label="客服正在回复"><i></i><i></i><i></i></div>
+      </div>
+    </section>
+
+    <section v-if="showSuggestions" class="suggestions">
+      <p>你可以这样问</p>
+      <div class="suggestion-list">
+        <button v-for="item in suggestions" :key="item" type="button" :disabled="sending" @click="send(item)">{{ item }}</button>
+      </div>
+    </section>
+
+    <form class="composer" @submit.prevent="send(input)">
+      <textarea v-model="input" aria-label="输入问题" maxlength="2000" rows="1" :disabled="sending"
+                :placeholder="token ? '问商铺、优惠券或我的订单…' : '登录后即可咨询…'"
+                @keydown.enter.exact.prevent="send(input)"></textarea>
+      <button class="send-button" type="submit" :disabled="sending || !input.trim()" aria-label="发送消息"><i class="el-icon-position"></i></button>
+    </form>
+  </main>
+</div>
+<script src="./js/vue.js"></script>
+<script src="./js/axios.min.js"></script>
+<script src="./js/element.js"></script>
+<script src="./js/common.js"></script>
+<script src="./js/customer-service.js"></script>
+</body>
+</html>

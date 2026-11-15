@@ -5,13 +5,12 @@ spring:
     name: hmdp
   datasource:
     driver-class-name: com.mysql.jdbc.Driver
-    url: jdbc:mysql://127.0.0.1:3306/hmdp?useSSL=false&serverTimezone=UTC&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://127.0.0.1:13306/hmdp?useSSL=false&serverTimezone=UTC&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     username: root
     password: 123456
   redis:
-    host: 192.168.253.130
-    port: 6379
-    password: 123456
+    host: 127.0.0.1
+    port: 16379
     lettuce:
       pool:
         max-active: 10
@@ -25,3 +24,19 @@ mybatis-plus:
 logging:
   level:
     com.hmdp: debug
+rocketmq:
+  producer:
+    group: hm-seckill-producer-group
+  name-server: 127.0.0.1:9876
+
+# AI 模型服务配置（智能客服 + AI 探店文案助手共用，前缀为兼容既有部署保留）
+# 模型需支持 Chat Completions；智能客服额外要求 Tool Calls 能力。
+customer-service:
+  ai:
+    enabled: ${CUSTOMER_SERVICE_AI_ENABLED:true}
+    endpoint: ${CUSTOMER_SERVICE_AI_ENDPOINT:https://api.deepseek.com/chat/completions}
+    model: ${CUSTOMER_SERVICE_AI_MODEL:deepseek-flash}
+    # 在 IDEA 启动配置或系统环境变量中设置真实 Key，不要写入本文件。
+    api-key: ${CUSTOMER_SERVICE_AI_API_KEY:}
+    connect-timeout-ms: 5000
+    read-timeout-ms: 30000
